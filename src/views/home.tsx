@@ -28,7 +28,7 @@ export default function Home() {
       } else setEvents(data);
     };
     fetchTodos();
-  }, [isOpen, isOpenSettingsclaer]);
+  }, [isOpen, isOpenSettings]);
 
   const CalenderData = events.map(
     ({ color, title, startTime, endTime, date }) => ({
