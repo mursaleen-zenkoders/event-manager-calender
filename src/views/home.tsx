@@ -1,5 +1,6 @@
 "use client";
 
+import CalenderSettingsModal from "@/components/calender-settings-modal";
 import CreateEvent from "@/components/create-event";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ dayjs.extend(utc);
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [events, setEvents] = useState<Array<EventT>>([]);
+  const [isOpenSettings, setIsOpenSettings] = useState(false);
 
   useEffect(() => {
     const fetchTodos = async () => {
@@ -26,14 +28,14 @@ export default function Home() {
       } else setEvents(data);
     };
     fetchTodos();
-  }, [isOpen]);
+  }, [isOpen, isOpenSettingsclaer]);
 
   const CalenderData = events.map(
     ({ color, title, startTime, endTime, date }) => ({
       title,
       color,
-      end: dayjs.utc(`${date}T${endTime}`).toDate(),
-      start: dayjs.utc(`${date}T${startTime}`).toDate(),
+      end: dayjs(`${date}T${endTime}`).toDate(),
+      start: dayjs(`${date}T${startTime}`).toDate(),
     })
   );
 
@@ -42,7 +44,9 @@ export default function Home() {
       <div className="flex justify-between items-center relative">
         <h1 className="text-3xl font-semibold">Dynamic Calender</h1>
 
-        <Button variant={"outline"}>Setting</Button>
+        <Button variant={"outline"} onClick={() => setIsOpenSettings(true)}>
+          Setting
+        </Button>
 
         <Button
           onClick={() => setIsOpen(true)}
@@ -71,8 +75,16 @@ export default function Home() {
         })}
       />
 
-      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)}>
+      <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Add Event">
         <CreateEvent onClose={() => setIsOpen(false)} />
+      </Modal>
+
+      <Modal
+        isOpen={isOpenSettings}
+        title="Calender Settings"
+        onClose={() => setIsOpenSettings(false)}
+      >
+        <CalenderSettingsModal onClose={() => setIsOpenSettings(false)} />
       </Modal>
     </div>
   );
