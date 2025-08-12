@@ -6,37 +6,55 @@ import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import EventT from "@/types/event.type";
 import { supabase } from "@/utils/supabase-client";
-import dayjs from "dayjs";
-import utc from "dayjs/plugin/utc";
-import { useEffect, useState } from "react";
-import { Calendar, dayjsLocalizer } from "react-big-calendar";
+import { useEffect, useMemo, useState } from "react";
+import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
-const localizer = dayjsLocalizer(dayjs);
-dayjs.extend(utc);
+import formatEventTime from "@/utils/time-formater";
+import moment from "moment-timezone";
+import toast from "react-hot-toast";
+import { FaSpinner } from "react-icons/fa";
+import { LuSettings } from "react-icons/lu";
 
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [events, setEvents] = useState<Array<EventT>>([]);
   const [isOpenSettings, setIsOpenSettings] = useState(false);
+  const [selectedTimezone, setSelectedTimezone] = useState("Asia/Kolkata");
+  const [loading, setLoading] = useState(true);
+
+  const localizer = useMemo(() => {
+    moment.tz.setDefault(selectedTimezone);
+    return momentLocalizer(moment);
+  }, [selectedTimezone]);
 
   useEffect(() => {
     const fetchTodos = async () => {
-      const { data, error } = await supabase.from("events").select("*");
-      if (error) {
-        console.log("🚀 ~ fetchTodos ~ error:", error);
-      } else setEvents(data);
+      setLoading(true);
+      try {
+        const { data: timeZone, error: timeZoneError } = await supabase
+          .from("settings")
+          .select("*")
+          .single();
+        if (timeZoneError) return toast.error(timeZoneError.message);
+        setSelectedTimezone(timeZone?.preferences || "Asia/Kolkata");
+
+        const { data, error } = await supabase.from("events").select("*");
+        if (error) {
+          console.log("🚀 ~ fetchTodos ~ error:", error);
+        } else {
+          setEvents(data);
+        }
+      } finally {
+        setLoading(false);
+      }
     };
     fetchTodos();
   }, [isOpen, isOpenSettings]);
 
-  const CalenderData = events.map(
-    ({ color, title, startTime, endTime, date }) => ({
-      title,
-      color,
-      end: dayjs(`${date}T${endTime}`).toDate(),
-      start: dayjs(`${date}T${startTime}`).toDate(),
-    })
+  const calendarEvents = useMemo(
+    () => events.map((item) => formatEventTime(item, selectedTimezone)),
+    [events, selectedTimezone]
   );
 
   return (
@@ -44,7 +62,12 @@ export default function Home() {
       <div className="flex justify-between items-center relative">
         <h1 className="text-3xl font-semibold">Dynamic Calender</h1>
 
-        <Button variant={"outline"} onClick={() => setIsOpenSettings(true)}>
+        <Button
+          variant={"outline"}
+          className="flex items-center gap-x-1"
+          onClick={() => setIsOpenSettings(true)}
+        >
+          <LuSettings />
           Setting
         </Button>
 
@@ -56,24 +79,32 @@ export default function Home() {
         </Button>
       </div>
 
-      <Calendar
-        localizer={localizer}
-        events={CalenderData}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 800 }}
-        views={["week"]}
-        showMultiDayTimes={true}
-        view="week"
-        components={{ event: EventWrapper }}
-        className="!flex !items-start !justify-between !relative"
-        eventPropGetter={(event) => ({
-          style: {
-            backgroundColor: event.color,
-            border: "none",
-          },
-        })}
-      />
+      <div className="relative">
+        <Calendar
+          localizer={localizer}
+          events={calendarEvents}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: 800 }}
+          views={["week"]}
+          showMultiDayTimes={true}
+          view="week"
+          components={{ event: EventWrapper }}
+          className="!flex !items-start !justify-between !relative"
+          eventPropGetter={(event) => ({
+            style: {
+              backgroundColor: event.color,
+              border: "none",
+            },
+          })}
+        />
+        {/* Loader overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70">
+            <FaSpinner className="animate-spin text-4xl text-blue-500" />
+          </div>
+        )}
+      </div>
 
       <Modal isOpen={isOpen} onClose={() => setIsOpen(false)} title="Add Event">
         <CreateEvent onClose={() => setIsOpen(false)} />
@@ -84,7 +115,10 @@ export default function Home() {
         title="Calender Settings"
         onClose={() => setIsOpenSettings(false)}
       >
-        <CalenderSettingsModal onClose={() => setIsOpenSettings(false)} />
+        <CalenderSettingsModal
+          onClose={() => setIsOpenSettings(false)}
+          setSelectedTimezone={setSelectedTimezone}
+        />
       </Modal>
     </div>
   );
@@ -99,9 +133,9 @@ const EventWrapper = ({
     <div className="flex flex-col gap-y-1 h-full p-1 !text-white">
       <h1 className="font-medium text-sm">{event.title}</h1>
       <div className="flex gap-x-1 text-sm">
-        <p>{dayjs(event.start).format("h:mm A")}</p>
+        <p>{moment(event.start).format("h:mm A")}</p>
         <span>-</span>
-        <p>{dayjs(event.end).format("h:mm A")}</p>
+        <p>{moment(event.end).format("h:mm A")}</p>
       </div>
     </div>
   );
