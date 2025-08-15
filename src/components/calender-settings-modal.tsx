@@ -1,31 +1,49 @@
 "use client";
 
-import { FaRegClock } from "react-icons/fa";
+import { useSettings } from "@/services/settings/get-settings";
 import EventConstraint from "./settings/event-constraint";
+import HoursConfiguration from "./settings/hours-configuration";
 import Preferences from "./settings/preferences";
 import TabsComponent from "./tabs";
-import { Button } from "./ui/button";
 import { TabsContent } from "./ui/tabs";
 
 interface CalenderSettingsModalProps {
   onClose: () => void;
-  setSelectedTimezone: (timezone: string) => void;
 }
 
-const CalenderSettingsModal = ({
-  onClose,
-  setSelectedTimezone,
-}: CalenderSettingsModalProps) => {
+const CalenderSettingsModal = ({ onClose }: CalenderSettingsModalProps) => {
+  const { data, isPending } = useSettings();
+
+  const { eventConstraints, id, preferences, workingHoursConfiguration } =
+    data || {
+      id: 1,
+      preferences: "",
+      eventConstraints: "[]",
+      workingHoursConfiguration: "[]",
+    };
+
   return (
     <TabsComponent>
-      <TabsContent value="tab1">{HoursConfiguration(onClose)}</TabsContent>
+      <TabsContent value="tab1">
+        <HoursConfiguration
+          id={id}
+          onClose={onClose}
+          workingHoursConfiguration={workingHoursConfiguration}
+        />
+      </TabsContent>
       <TabsContent value="tab2">
-        <EventConstraint onClose={onClose} />
+        <EventConstraint
+          eventConstraints={eventConstraints}
+          onClose={onClose}
+          id={id}
+        />
       </TabsContent>
       <TabsContent value="tab3">
         <Preferences
+          id={id}
           onClose={onClose}
-          setSelectedTimezone={setSelectedTimezone}
+          isPending={isPending}
+          preferences={preferences}
         />
       </TabsContent>
     </TabsComponent>
@@ -33,20 +51,3 @@ const CalenderSettingsModal = ({
 };
 
 export default CalenderSettingsModal;
-
-const HoursConfiguration = (onClose: () => void) => {
-  return (
-    <form className="flex flex-col gap-3">
-      <div className="flex items-center gap-x-2">
-        <FaRegClock /> <p>Working Hours Configuration</p>
-      </div>
-
-      <div className="flex items-center justify-end gap-x-3 pt-4 border-t">
-        <Button variant="outline" type="button" onClick={onClose}>
-          Cancel
-        </Button>
-        <Button type="submit">Save Settings</Button>
-      </div>
-    </form>
-  );
-};

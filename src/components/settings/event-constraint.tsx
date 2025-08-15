@@ -1,20 +1,42 @@
-import React from "react";
+import { useUpdateConstraints } from "@/services/settings/update-constraints";
 import { useFormik } from "formik";
 import { LuShield } from "react-icons/lu";
-import { Switch } from "../ui/switch";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Button } from "../ui/button";
+import { Switch } from "../ui/switch";
 
-const EventConstraint = ({ onClose }: { onClose: () => void }) => {
-  const { values, handleChange, handleSubmit, resetForm } = useFormik({
-    initialValues: {
-      bufferTime: 15,
-      maximumDailyHours: 8,
-      allowOverlappingEvents: false,
-    },
-    onSubmit: () => {},
-  });
+interface IProps {
+  eventConstraints: string | null;
+  onClose: () => void;
+  id: number;
+}
+
+const EventConstraint = ({ onClose, id, eventConstraints }: IProps) => {
+  const { mutateAsync } = useUpdateConstraints();
+  const { bufferTime, maximumDailyHours, allowOverlappingEvents } = JSON.parse(
+    eventConstraints || "{}"
+  );
+
+  const { values, handleChange, handleSubmit, resetForm, setFieldValue } =
+    useFormik({
+      initialValues: {
+        bufferTime: bufferTime ?? 15,
+        maximumDailyHours: maximumDailyHours ?? 8,
+        allowOverlappingEvents: allowOverlappingEvents ?? false,
+      },
+      enableReinitialize: true,
+      onSubmit: async (value) => {
+        const eventConstraints = JSON.stringify(value);
+
+        try {
+          await mutateAsync({ eventConstraints, id });
+          onClose();
+        } catch (error) {
+          console.log("🚀 ~ EventConstraint ~ error:", error);
+        }
+      },
+    });
 
   const handleClose = () => {
     resetForm();
@@ -57,17 +79,19 @@ const EventConstraint = ({ onClose }: { onClose: () => void }) => {
       </div>
 
       <div className="flex items-center justify-between">
-        <div>
+        <Label
+          htmlFor="allowOverlappingEvents"
+          className="flex flex-col justify-start items-start"
+        >
           <p>Allow Overlapping Events</p>
           <p className="text-sm text-gray-600">
             When enabled, events can overlap in time
           </p>
-        </div>
+        </Label>
         <Switch
-          type="button"
-          onChange={handleChange}
-          name="allowOverlappingEvents"
+          id="allowOverlappingEvents"
           checked={values.allowOverlappingEvents}
+          onCheckedChange={(v) => setFieldValue("allowOverlappingEvents", v)}
         />
       </div>
 

@@ -1,11 +1,11 @@
 "use client";
+
 import { colors } from "@/constants/colors";
 import { timezones } from "@/constants/time-zones";
 import { createEventSchema } from "@/schemas/create-event.schema";
-import { supabase } from "@/utils/supabase-client";
+import { useCreateEvent } from "@/services/events/post-create-event";
 import { useFormik } from "formik";
 import { useState } from "react";
-import toast from "react-hot-toast";
 import Select from "./select";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -15,6 +15,8 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
   const [AvailabilityError, setAvailabilityError] = useState<
     string | undefined
   >(undefined);
+
+  const { mutateAsync } = useCreateEvent();
 
   const { values, handleChange, handleSubmit, setFieldValue, errors, touched } =
     useFormik({
@@ -32,29 +34,14 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
       onSubmit: async (values) => {
         setAvailabilityError(undefined);
         try {
-          const { data } = await supabase
-            .from("events")
-            .select()
-            .filter("date", "eq", values.date);
-
-          if (data && data.length > 0) {
-            setAvailabilityError("Event overlaps with: " + data[0].title);
-            return;
-          }
-
-          const { error } = await supabase
-            .from("events")
-            .insert([{ ...values }]);
-
-          if (error) {
-            setAvailabilityError(error.message);
-            return;
-          }
-
-          toast.success("Event created successfully!");
+          await mutateAsync(values);
           onClose();
-        } catch (error) {
-          console.error(error);
+        } catch (error: unknown) {
+          if (error instanceof Error) {
+            setAvailabilityError(error.message);
+          } else {
+            setAvailabilityError("An unexpected error occurred.");
+          }
         }
       },
     });

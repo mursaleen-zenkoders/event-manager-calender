@@ -5,56 +5,33 @@ import CreateEvent from "@/components/create-event";
 import { Modal } from "@/components/modal";
 import { Button } from "@/components/ui/button";
 import EventT from "@/types/event.type";
-import { supabase } from "@/utils/supabase-client";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 
+import { useGetEvents } from "@/services/events/get-events";
+import { useSettings } from "@/services/settings/get-settings";
 import formatEventTime from "@/utils/time-formater";
 import moment from "moment-timezone";
-import toast from "react-hot-toast";
 import { FaSpinner } from "react-icons/fa";
 import { LuSettings } from "react-icons/lu";
 
 export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
-  const [events, setEvents] = useState<Array<EventT>>([]);
   const [isOpenSettings, setIsOpenSettings] = useState(false);
-  const [selectedTimezone, setSelectedTimezone] = useState("Asia/Kolkata");
-  const [loading, setLoading] = useState(true);
+
+  const { data: { preferences } = { preferences: "America/New_York" } } =
+    useSettings();
+  const { data: events, isPending } = useGetEvents();
 
   const localizer = useMemo(() => {
-    moment.tz.setDefault(selectedTimezone);
+    moment.tz.setDefault(preferences);
     return momentLocalizer(moment);
-  }, [selectedTimezone]);
-
-  useEffect(() => {
-    const fetchTodos = async () => {
-      setLoading(true);
-      try {
-        const { data: timeZone, error: timeZoneError } = await supabase
-          .from("settings")
-          .select("*")
-          .single();
-        if (timeZoneError) return toast.error(timeZoneError.message);
-        setSelectedTimezone(timeZone?.preferences || "Asia/Kolkata");
-
-        const { data, error } = await supabase.from("events").select("*");
-        if (error) {
-          console.log("🚀 ~ fetchTodos ~ error:", error);
-        } else {
-          setEvents(data);
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchTodos();
-  }, [isOpen, isOpenSettings]);
+  }, [preferences]);
 
   const calendarEvents = useMemo(
-    () => events.map((item) => formatEventTime(item, selectedTimezone)),
-    [events, selectedTimezone]
+    () => events?.map((item) => formatEventTime(item, preferences)),
+    [events, preferences]
   );
 
   return (
@@ -99,7 +76,7 @@ export default function Home() {
           })}
         />
         {/* Loader overlay */}
-        {loading && (
+        {isPending && (
           <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/70">
             <FaSpinner className="animate-spin text-4xl text-blue-500" />
           </div>
@@ -115,10 +92,7 @@ export default function Home() {
         title="Calender Settings"
         onClose={() => setIsOpenSettings(false)}
       >
-        <CalenderSettingsModal
-          onClose={() => setIsOpenSettings(false)}
-          setSelectedTimezone={setSelectedTimezone}
-        />
+        <CalenderSettingsModal onClose={() => setIsOpenSettings(false)} />
       </Modal>
     </div>
   );
