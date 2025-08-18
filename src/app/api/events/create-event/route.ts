@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
       .select("*")
       .single();
 
-    const { maximumDailyHours, allowOverlappingEvents } = JSON.parse(
-      settings?.eventConstraints || "{}"
-    );
+    // const { ...days } = JSON.parse(settings?.workingHoursConfiguration || "{}");
+
+    const { maximumDailyHours, allowOverlappingEvents, bufferTime } =
+      JSON.parse(settings?.eventConstraints || "{}");
 
     const { data } = await supabase
       .from("events")
@@ -25,7 +26,8 @@ export async function POST(req: NextRequest) {
 
     const isOverLapWithTime = checkTimeOverlap(
       { ...values, startTime, endTime },
-      data || []
+      data || [],
+      bufferTime
     );
 
     const isMoreThanWorkingHour = isWithinWorkingHours(
@@ -37,9 +39,7 @@ export async function POST(req: NextRequest) {
     if (isOverLapWithTime.hasOverlap && !allowOverlappingEvents) {
       return NextResponse.json(
         {
-          error:
-            "Event overlaps with: " +
-            isOverLapWithTime?.conflictingEvent?.title,
+          error: isOverLapWithTime?.reason,
         },
         { status: 500 }
       );
