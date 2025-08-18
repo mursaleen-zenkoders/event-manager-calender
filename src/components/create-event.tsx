@@ -4,6 +4,7 @@ import { colors } from "@/constants/colors";
 import { timezones } from "@/constants/time-zones";
 import { createEventSchema } from "@/schemas/create-event.schema";
 import { useCreateEvent } from "@/services/events/post-create-event";
+import { AxiosError } from "axios";
 import { useFormik } from "formik";
 import { useState } from "react";
 import Select from "./select";
@@ -15,6 +16,7 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
   const [AvailabilityError, setAvailabilityError] = useState<
     string | undefined
   >(undefined);
+  console.log("🚀 ~ CreateEvent ~ AvailabilityError:", AvailabilityError);
 
   const { mutateAsync } = useCreateEvent();
 
@@ -36,9 +38,11 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
         try {
           await mutateAsync(values);
           onClose();
-        } catch (error: unknown) {
-          if (error instanceof Error) {
-            setAvailabilityError(error.message);
+        } catch (error: AxiosError<{ error: string }> | unknown) {
+          if (error) {
+            setAvailabilityError(
+              (error as AxiosError<{ error: string }>)?.response?.data?.error
+            );
           } else {
             setAvailabilityError("An unexpected error occurred.");
           }

@@ -1,5 +1,8 @@
+import { useUpdateWorkingHours } from "@/services/settings/update-working-hours";
+import { useFormik } from "formik";
 import { FaRegClock } from "react-icons/fa";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 
 interface IProps {
   workingHoursConfiguration: string | null;
@@ -7,11 +10,127 @@ interface IProps {
   id: number;
 }
 
-const HoursConfiguration = ({ onClose }: IProps) => {
+type timeT = {
+  from: string;
+  to: string;
+};
+
+type initialValuesT = {
+  Monday: Array<timeT>;
+  Tuesday: Array<timeT>;
+  Wednesday: Array<timeT>;
+  Thursday: Array<timeT>;
+  Friday: Array<timeT>;
+  Saturday: Array<timeT>;
+  Sunday: Array<timeT>;
+};
+
+const initialTime: timeT = { from: "09:00", to: "17:00" };
+
+const HoursConfiguration = ({
+  workingHoursConfiguration,
+  onClose,
+  id,
+}: IProps) => {
+  const { mutateAsync } = useUpdateWorkingHours();
+
+  const { values, handleChange, setFieldValue, handleSubmit } =
+    useFormik<initialValuesT>({
+      initialValues: workingHoursConfiguration
+        ? JSON.parse(workingHoursConfiguration || "{}")
+        : {
+            Monday: [initialTime],
+            Tuesday: [initialTime],
+            Wednesday: [initialTime],
+            Thursday: [initialTime],
+            Friday: [initialTime],
+            Saturday: [],
+            Sunday: [],
+          },
+      enableReinitialize: true,
+      onSubmit: async (values) => {
+        try {
+          await mutateAsync({
+            workingHoursConfiguration: JSON.stringify(values),
+            id,
+          });
+          onClose();
+        } catch (error) {
+          console.error(error);
+        }
+      },
+    });
+
+  const handleAddSlot = (key: keyof typeof values) => {
+    setFieldValue(key, [...values[key], initialTime]);
+  };
+
+  const handleRemove = (key: keyof typeof values, i: number) => {
+    values[key].splice(i, 1);
+    setFieldValue(key, values[key]);
+  };
+
   return (
-    <form className="flex flex-col gap-3">
+    <form className="flex flex-col gap-3" onSubmit={handleSubmit}>
       <div className="flex items-center gap-x-2">
         <FaRegClock /> <p>Working Hours Configuration</p>
+      </div>
+
+      <div className="flex flex-col gap-y-5 max-h-[40dvh] overflow-y-auto">
+        {Object.entries(values).map(([key, value]) => (
+          <div className="flex flex-col gap-y-3 pb-2" key={key}>
+            <div className="flex items-center w-full gap-x-2 justify-between">
+              <p className="font-semibold text-xl">{key}</p>
+              <div className="flex gap-x-2">
+                <Button
+                  variant={"outline"}
+                  type="button"
+                  onClick={() => handleAddSlot(key as keyof initialValuesT)}
+                >
+                  Add Slot
+                </Button>
+                <Button variant={"outline"} type="button">
+                  Copy to All
+                </Button>
+              </div>
+            </div>
+
+            {value.length > 0 ? (
+              <div className="flex flex-col gap-y-3">
+                {value.map(({ from, to }, i) => (
+                  <div key={i} className="flex items-center gap-x-3">
+                    <Input
+                      type="time"
+                      value={from}
+                      onChange={handleChange}
+                      name={`${key}.${i}.from`}
+                      className="bg-gray-200/60"
+                    />
+                    <Input
+                      value={to}
+                      type="time"
+                      name={`${key}.${i}.to`}
+                      onChange={handleChange}
+                      className="bg-gray-200/60"
+                    />
+
+                    <Button
+                      type="button"
+                      className="bg-red-600"
+                      onClick={() =>
+                        handleRemove(key as keyof initialValuesT, i)
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              "No working hours set"
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="flex items-center justify-end gap-x-3 pt-4 border-t">

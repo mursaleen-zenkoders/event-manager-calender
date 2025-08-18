@@ -34,6 +34,7 @@ export default function Preferences({
         await mutateAsync({ timezone, id });
         onClose();
       } catch (error) {
+        console.log("🚀 ~ Preferences ~ error:", error);
         toast.error("Something went wrong");
       }
     },

@@ -1,4 +1,6 @@
 import EventT from "@/types/event.type";
+import { checkTimeOverlap } from "@/utils/check-time-overlap";
+import { isWithinWorkingHours } from "@/utils/is-within-working-hours";
 import { supabase } from "@/utils/supabase-client";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,7 +14,7 @@ export async function POST(req: NextRequest) {
       .select("*")
       .single();
 
-    const { maximumDailyHours } = JSON.parse(
+    const { maximumDailyHours, allowOverlappingEvents } = JSON.parse(
       settings?.eventConstraints || "{}"
     );
 
@@ -21,30 +23,10 @@ export async function POST(req: NextRequest) {
       .select("*")
       .filter("date", "eq", values.date);
 
-    function isWithinWorkingHours(
-      startTime: string,
-      endTime: string,
-      workingHour: string
-    ) {
-      // Helper function to convert time string (HH:MM) to minutes
-      function timeToMinutes(time: string) {
-        const [hours, minutes] = time.split(":").map(Number);
-        return hours * 60 + minutes;
-      }
-
-      // Convert start and end times to minutes
-      const startMinutes = timeToMinutes(startTime);
-      const endMinutes = timeToMinutes(endTime);
-
-      // Calculate duration in minutes
-      const durationMinutes = endMinutes - startMinutes;
-
-      // Convert working hours to minutes
-      const workingMinutes = +workingHour * 60;
-
-      // Check if duration is less than or equal to working hours
-      return durationMinutes <= workingMinutes;
-    }
+    const isOverLapWithTime = checkTimeOverlap(
+      { ...values, startTime, endTime },
+      data || []
+    );
 
     const isMoreThanWorkingHour = isWithinWorkingHours(
       startTime,
@@ -52,9 +34,13 @@ export async function POST(req: NextRequest) {
       maximumDailyHours
     );
 
-    if (data && data.length > 0) {
+    if (isOverLapWithTime.hasOverlap && !allowOverlappingEvents) {
       return NextResponse.json(
-        { error: "Event overlaps with: " + data[0].title },
+        {
+          error:
+            "Event overlaps with: " +
+            isOverLapWithTime?.conflictingEvent?.title,
+        },
         { status: 500 }
       );
     }
