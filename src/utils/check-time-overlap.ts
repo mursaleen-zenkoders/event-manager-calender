@@ -6,7 +6,6 @@ export function checkTimeOverlap(
   existingEvents: EventT[],
   bufferTime: number
 ) {
-  // Normalize time format (append :00 if needed)
   const normalizeTime = (time: string) => {
     if (time.split(":").length === 2) return `${time}:00`;
     return time;
@@ -65,7 +64,7 @@ export function checkTimeOverlap(
       newStartUTC.isSameOrBefore(existingEndUTC) &&
       newEndUTC.isSameOrAfter(existingStartUTC);
 
-    // Check for 15-minute break rule
+    // Check for break rule
     const breakTime = moment(existingEndUTC).add(bufferTime, "minutes");
     const violatesBreakRule = newStartUTC.isSameOrBefore(breakTime);
 

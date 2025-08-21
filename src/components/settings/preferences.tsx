@@ -26,7 +26,7 @@ export default function Preferences({
 }: IProps): JSX.Element {
   const { mutateAsync } = useUpdatePreferences();
 
-  const { values, setFieldValue, handleSubmit } = useFormik({
+  const { values, setFieldValue, handleSubmit, dirty } = useFormik({
     initialValues: { timezone: preferences || "" },
     enableReinitialize: true,
     onSubmit: async ({ timezone }) => {
@@ -66,7 +66,9 @@ export default function Preferences({
         <Button variant="outline" type="button" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit">Save Settings</Button>
+        <Button type="submit" disabled={!dirty}>
+          Save Settings
+        </Button>
       </div>
     </form>
   );

@@ -19,35 +19,42 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
 
   const { mutateAsync } = useCreateEvent();
 
-  const { values, handleChange, handleSubmit, setFieldValue, errors, touched } =
-    useFormik({
-      initialValues: {
-        date: "",
-        title: "",
-        endTime: "",
-        timeZone: "",
-        startTime: "",
-        description: "",
-        isAllDay: false,
-        color: colors[0],
-      },
-      validationSchema: createEventSchema,
-      onSubmit: async (values) => {
-        setAvailabilityError(undefined);
-        try {
-          await mutateAsync(values);
-          onClose();
-        } catch (error: AxiosError<{ error: string }> | unknown) {
-          if (error) {
-            setAvailabilityError(
-              (error as AxiosError<{ error: string }>)?.response?.data?.error
-            );
-          } else {
-            setAvailabilityError("An unexpected error occurred.");
-          }
+  const {
+    dirty,
+    values,
+    errors,
+    touched,
+    handleChange,
+    handleSubmit,
+    setFieldValue,
+  } = useFormik({
+    initialValues: {
+      date: "",
+      title: "",
+      endTime: "",
+      timeZone: "",
+      startTime: "",
+      description: "",
+      isAllDay: false,
+      color: colors[0],
+    },
+    validationSchema: createEventSchema,
+    onSubmit: async (values) => {
+      setAvailabilityError(undefined);
+      try {
+        await mutateAsync(values);
+        onClose();
+      } catch (error: AxiosError<{ error: string }> | unknown) {
+        if (error) {
+          setAvailabilityError(
+            (error as AxiosError<{ error: string }>)?.response?.data?.error
+          );
+        } else {
+          setAvailabilityError("An unexpected error occurred.");
         }
-      },
-    });
+      }
+    },
+  });
 
   const error = (name: keyof typeof values) => {
     if (errors[name] && touched[name]) {
@@ -161,8 +168,10 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
       <p className="text-red-500 text-sm">{AvailabilityError}</p>
 
       <div className="flex items-center justify-start gap-x-3">
-        <Button type="submit">Create Event</Button>
-        <Button variant="outline" type="button" onClick={onClose}>
+        <Button type="submit" disabled={!dirty}>
+          Create Event
+        </Button>
+        <Button type="button" variant="outline" onClick={onClose}>
           Cancel
         </Button>
       </div>

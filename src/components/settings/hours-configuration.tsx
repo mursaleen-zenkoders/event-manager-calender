@@ -10,22 +10,22 @@ interface IProps {
   id: number;
 }
 
-type timeT = {
+export type TimeSlotT = {
   from: string;
   to: string;
 };
 
 type initialValuesT = {
-  Monday: Array<timeT>;
-  Tuesday: Array<timeT>;
-  Wednesday: Array<timeT>;
-  Thursday: Array<timeT>;
-  Friday: Array<timeT>;
-  Saturday: Array<timeT>;
-  Sunday: Array<timeT>;
+  Monday: Array<TimeSlotT>;
+  Tuesday: Array<TimeSlotT>;
+  Wednesday: Array<TimeSlotT>;
+  Thursday: Array<TimeSlotT>;
+  Friday: Array<TimeSlotT>;
+  Saturday: Array<TimeSlotT>;
+  Sunday: Array<TimeSlotT>;
 };
 
-const initialTime: timeT = { from: "09:00", to: "17:00" };
+const initialTime: TimeSlotT = { from: "09:00", to: "17:00" };
 
 const HoursConfiguration = ({
   workingHoursConfiguration,
@@ -34,7 +34,7 @@ const HoursConfiguration = ({
 }: IProps) => {
   const { mutateAsync } = useUpdateWorkingHours();
 
-  const { values, handleChange, setFieldValue, handleSubmit } =
+  const { values, handleChange, setFieldValue, handleSubmit, dirty } =
     useFormik<initialValuesT>({
       initialValues: workingHoursConfiguration
         ? JSON.parse(workingHoursConfiguration || "{}")
@@ -137,7 +137,9 @@ const HoursConfiguration = ({
         <Button variant="outline" type="button" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit">Save Settings</Button>
+        <Button type="submit" disabled={!dirty}>
+          Save Settings
+        </Button>
       </div>
     </form>
   );

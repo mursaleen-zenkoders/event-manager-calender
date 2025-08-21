@@ -18,25 +18,31 @@ const EventConstraint = ({ onClose, id, eventConstraints }: IProps) => {
     eventConstraints || "{}"
   );
 
-  const { values, handleChange, handleSubmit, resetForm, setFieldValue } =
-    useFormik({
-      initialValues: {
-        bufferTime: bufferTime ?? 15,
-        maximumDailyHours: maximumDailyHours ?? 8,
-        allowOverlappingEvents: allowOverlappingEvents ?? false,
-      },
-      enableReinitialize: true,
-      onSubmit: async (value) => {
-        const eventConstraints = JSON.stringify(value);
+  const {
+    dirty,
+    values,
+    resetForm,
+    handleChange,
+    handleSubmit,
+    setFieldValue,
+  } = useFormik({
+    initialValues: {
+      bufferTime: bufferTime ?? 15,
+      maximumDailyHours: maximumDailyHours ?? 8,
+      allowOverlappingEvents: allowOverlappingEvents ?? false,
+    },
+    enableReinitialize: true,
+    onSubmit: async (value) => {
+      const eventConstraints = JSON.stringify(value);
 
-        try {
-          await mutateAsync({ eventConstraints, id });
-          onClose();
-        } catch (error) {
-          console.log("🚀 ~ EventConstraint ~ error:", error);
-        }
-      },
-    });
+      try {
+        await mutateAsync({ eventConstraints, id });
+        onClose();
+      } catch (error) {
+        console.log("🚀 ~ EventConstraint ~ error:", error);
+      }
+    },
+  });
 
   const handleClose = () => {
     resetForm();
@@ -99,7 +105,9 @@ const EventConstraint = ({ onClose, id, eventConstraints }: IProps) => {
         <Button variant="outline" type="button" onClick={handleClose}>
           Cancel
         </Button>
-        <Button type="submit">Save Settings</Button>
+        <Button type="submit" disabled={!dirty}>
+          Save Settings
+        </Button>
       </div>
     </form>
   );

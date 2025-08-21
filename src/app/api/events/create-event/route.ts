@@ -1,5 +1,6 @@
 import EventT from "@/types/event.type";
 import { checkTimeOverlap } from "@/utils/check-time-overlap";
+import { isTimeWithinSlots } from "@/utils/is-time-within-slots";
 import { isWithinWorkingHours } from "@/utils/is-within-working-hours";
 import { supabase } from "@/utils/supabase-client";
 import { NextRequest, NextResponse } from "next/server";
@@ -13,6 +14,21 @@ export async function POST(req: NextRequest) {
       .from("settings")
       .select("*")
       .single();
+
+    const { ...days } = JSON.parse(settings?.workingHoursConfiguration || "{}");
+
+    const day = Object.keys(days)[new Date().getDay() - 1];
+    const timeSlot = days[day] || [];
+    const isSlotAvailable = timeSlot.length > 0;
+
+    if (!isSlotAvailable) {
+      return NextResponse.json(
+        {
+          error: "On this day, no time slot is set.",
+        },
+        { status: 500 }
+      );
+    }
 
     const { maximumDailyHours, allowOverlappingEvents, bufferTime } =
       JSON.parse(settings?.eventConstraints || "{}");
@@ -36,6 +52,8 @@ export async function POST(req: NextRequest) {
       maximumDailyHours
     );
 
+    const isSlotMatch = isTimeWithinSlots({ endTime, startTime, timeSlot });
+
     if (isOverLapWithTime.hasOverlap && !allowOverlappingEvents) {
       return NextResponse.json(
         {
@@ -45,7 +63,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!isMoreThanWorkingHour) {
+    if (!isMoreThanWorkingHour || !isSlotMatch) {
       return NextResponse.json(
         { error: "Event is outside of working hours" },
         { status: 500 }
