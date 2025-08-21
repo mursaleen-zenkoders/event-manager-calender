@@ -14,8 +14,6 @@ export async function POST(req: NextRequest) {
       .select("*")
       .single();
 
-    // const { ...days } = JSON.parse(settings?.workingHoursConfiguration || "{}");
-
     const { maximumDailyHours, allowOverlappingEvents, bufferTime } =
       JSON.parse(settings?.eventConstraints || "{}");
 
@@ -24,6 +22,9 @@ export async function POST(req: NextRequest) {
       .select("*")
       .filter("date", "eq", values.date);
 
+    const getTimes: Array<{ startTime: string; endTime: string }> =
+      data?.map(({ startTime, endTime }) => ({ startTime, endTime })) || [];
+
     const isOverLapWithTime = checkTimeOverlap(
       { ...values, startTime, endTime },
       data || [],
@@ -31,8 +32,7 @@ export async function POST(req: NextRequest) {
     );
 
     const isMoreThanWorkingHour = isWithinWorkingHours(
-      startTime,
-      endTime,
+      [...getTimes, { startTime, endTime }],
       maximumDailyHours
     );
 

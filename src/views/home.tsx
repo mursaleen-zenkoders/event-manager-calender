@@ -105,8 +105,10 @@ const EventWrapper = ({
 }) => {
   return (
     <div className="flex flex-col gap-y-1 h-full p-1 !text-white">
-      <h1 className="font-medium text-sm">{event.title}</h1>
-      <div className="flex gap-x-1 text-sm">
+      <h1 className="font-medium text-sm line-clamp-1 min-h-4">
+        {event.title}
+      </h1>
+      <div className="flex gap-x-1 text-[13px]">
         <p>{moment(event.start).format("h:mm A")}</p>
         <span>-</span>
         <p>{moment(event.end).format("h:mm A")}</p>

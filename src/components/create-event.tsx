@@ -16,7 +16,6 @@ const CreateEvent = ({ onClose }: { onClose: () => void }) => {
   const [AvailabilityError, setAvailabilityError] = useState<
     string | undefined
   >(undefined);
-  console.log("🚀 ~ CreateEvent ~ AvailabilityError:", AvailabilityError);
 
   const { mutateAsync } = useCreateEvent();
 
