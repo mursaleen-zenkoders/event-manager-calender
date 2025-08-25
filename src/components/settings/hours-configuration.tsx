@@ -61,11 +61,11 @@ const HoursConfiguration = ({
       },
     });
 
-  const handleAddSlot = (key: keyof typeof values) => {
+  const handleAddSlot = (key: keyof initialValuesT) => {
     setFieldValue(key, [...values[key], initialTime]);
   };
 
-  const handleRemove = (key: keyof typeof values, i: number) => {
+  const handleRemove = (key: keyof initialValuesT, i: number) => {
     const updatedSlots = values[key].filter((_, index) => index !== i);
     setFieldValue(key, updatedSlots);
   };
