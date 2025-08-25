@@ -34,7 +34,7 @@ const HoursConfiguration = ({
 }: IProps) => {
   const { mutateAsync } = useUpdateWorkingHours();
 
-  const { values, handleChange, setFieldValue, handleSubmit, dirty } =
+  const { values, handleChange, setFieldValue, handleSubmit, setValues } =
     useFormik<initialValuesT>({
       initialValues: workingHoursConfiguration
         ? JSON.parse(workingHoursConfiguration || "{}")
@@ -66,8 +66,22 @@ const HoursConfiguration = ({
   };
 
   const handleRemove = (key: keyof typeof values, i: number) => {
-    values[key].splice(i, 1);
-    setFieldValue(key, values[key]);
+    const updatedSlots = values[key].filter((_, index) => index !== i);
+    setFieldValue(key, updatedSlots);
+  };
+
+  const handleCopyToAll = (key: keyof initialValuesT) => {
+    const value = values[key];
+    setValues({
+      ...values,
+      Monday: value,
+      Tuesday: value,
+      Wednesday: value,
+      Thursday: value,
+      Friday: value,
+      Saturday: value,
+      Sunday: value,
+    });
   };
 
   return (
@@ -89,7 +103,11 @@ const HoursConfiguration = ({
                 >
                   Add Slot
                 </Button>
-                <Button variant={"outline"} type="button">
+                <Button
+                  variant={"outline"}
+                  type="button"
+                  onClick={() => handleCopyToAll(key as keyof initialValuesT)}
+                >
                   Copy to All
                 </Button>
               </div>
@@ -137,9 +155,7 @@ const HoursConfiguration = ({
         <Button variant="outline" type="button" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" disabled={!dirty}>
-          Save Settings
-        </Button>
+        <Button type="submit">Save Settings</Button>
       </div>
     </form>
   );
