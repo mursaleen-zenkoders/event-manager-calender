@@ -6,69 +6,67 @@ export function checkTimeOverlap(
   existingEvents: EventT[],
   bufferTime: number
 ) {
-  const normalizeTime = (time: string) => {
-    if (time.split(":").length === 2) return `${time}:00`;
-    return time;
-  };
+  // Parse new event times as UTC
+  const newStartUTC = moment.utc(
+    `${newEvent.date} ${newEvent.startTime}`,
+    "YYYY-MM-DD HH:mm:ss"
+  );
+  const newEndUTC = moment.utc(
+    `${newEvent.date} ${newEvent.endTime}`,
+    "YYYY-MM-DD HH:mm:ss"
+  );
 
-  // Use specified times for new event
-  const newStartUTC = moment
-    .tz(
-      `${newEvent.date} ${normalizeTime(newEvent.startTime)}`,
-      "YYYY-MM-DD HH:mm:ss",
-      newEvent.timeZone
-    )
-    .utc();
-  const newEndUTC = moment
-    .tz(
-      `${newEvent.date} ${normalizeTime(newEvent.endTime)}`,
-      "YYYY-MM-DD HH:mm:ss",
-      newEvent.timeZone
-    )
-    .utc();
-
-  // Check for invalid new event dates
+  // Validate new event times
   if (
     !newStartUTC.isValid() ||
     !newEndUTC.isValid() ||
-    newStartUTC.isAfter(newEndUTC)
+    newStartUTC.isSameOrAfter(newEndUTC)
   ) {
-    return { hasOverlap: false, error: "Invalid new event date or time" };
+    return {
+      hasOverlap: false,
+      error: "Invalid new event date or time",
+      conflictingEvent: null,
+      reason: "Invalid date or time format for new event",
+    };
   }
 
   // Iterate through existing events
   for (const event of existingEvents) {
-    const existingStartUTC = moment
-      .tz(
-        `${event.date} ${normalizeTime(event.startTime)}`,
-        "YYYY-MM-DD HH:mm:ss",
-        event.timeZone
-      )
-      .utc();
-    const existingEndUTC = moment
-      .tz(
-        `${event.date} ${normalizeTime(event.endTime)}`,
-        "YYYY-MM-DD HH:mm:ss",
-        event.timeZone
-      )
-      .utc();
+    // Parse existing event times as UTC
+    const existingStartUTC = moment.utc(
+      `${event.date} ${event.startTime}`,
+      "YYYY-MM-DD HH:mm:ss"
+    );
+    const existingEndUTC = moment.utc(
+      `${event.date} ${event.endTime}`,
+      "YYYY-MM-DD HH:mm:ss"
+    );
 
-    // Check for invalid existing event dates
+    // Skip invalid existing events
     if (!existingStartUTC.isValid() || !existingEndUTC.isValid()) {
-      console.warn(`Invalid date/time for event ID ${event.title}`);
+      console.warn(`Invalid date/time for event: ${event.title}`);
       continue;
     }
 
-    // Check for overlap
+    // Check for direct overlap
     const hasTimeOverlap =
       newStartUTC.isSameOrBefore(existingEndUTC) &&
       newEndUTC.isSameOrAfter(existingStartUTC);
 
-    // Check for break rule
-    const breakTime = moment(existingEndUTC).add(bufferTime, "minutes");
-    const violatesBreakRule = newStartUTC.isSameOrBefore(breakTime);
+    // Check buffer time (after existing event and before existing event)
+    const bufferAfterExisting = moment(existingEndUTC).add(
+      bufferTime,
+      "minutes"
+    );
+    const bufferBeforeExisting = moment(existingStartUTC).subtract(
+      bufferTime,
+      "minutes"
+    );
+    const violatesBufferRule =
+      newStartUTC.isSameOrBefore(bufferAfterExisting) &&
+      newEndUTC.isSameOrAfter(bufferBeforeExisting);
 
-    if (hasTimeOverlap || violatesBreakRule) {
+    if (hasTimeOverlap || violatesBufferRule) {
       return {
         hasOverlap: true,
         conflictingEvent: {
@@ -79,11 +77,17 @@ export function checkTimeOverlap(
           timeZone: event.timeZone,
         },
         reason: hasTimeOverlap
-          ? "Event overlaps with: " + event.title
-          : `Insufficient break time (${bufferTime} minutes required)`,
+          ? `Event overlaps with: ${event.title}`
+          : `Insufficient buffer time (${bufferTime} minutes required)`,
+        error: null,
       };
     }
   }
 
-  return { hasOverlap: false };
+  return {
+    hasOverlap: false,
+    conflictingEvent: null,
+    reason: null,
+    error: null,
+  };
 }

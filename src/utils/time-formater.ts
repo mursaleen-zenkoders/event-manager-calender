@@ -10,41 +10,30 @@ const formatEventTime = (
   event: EventT,
   selectedTimezone: string
 ): Partial<EventT & { start: Date; end: Date; updatedTimezone: string }> => {
-  const { date, startTime, endTime, timeZone, color, title } = event;
+  const { date, startTime, endTime, color, title } = event;
+
+  // Combine date and time, assuming startTime and endTime are in UTC
+  const start = dayjs.utc(`${date} ${startTime}`, "YYYY-MM-DD HH:mm:ss");
+  const end = dayjs.utc(`${date} ${endTime}`, "YYYY-MM-DD HH:mm:ss");
 
   // Validate date and time inputs
-  const start = dayjs(`${date} ${startTime}`, "YYYY-MM-DD HH:mm:ss");
-  const end = dayjs(`${date} ${endTime}`, "YYYY-MM-DD HH:mm:ss");
-
   if (!start.isValid() || !end.isValid()) {
     console.error(`Invalid date/time: ${date} ${startTime}/${endTime}`);
     throw new Error("Invalid date or time format");
   }
 
-  // Validate timezones by attempting to apply them
+  // Validate selected timezone
   try {
-    dayjs.tz(start, timeZone); // Test event timezone
-  } catch (error) {
-    console.log("🚀 ~ formatEventTime ~ error:", error);
-    console.error(`Invalid event timezone: ${timeZone}`);
-    throw new Error(`Invalid event timezone: ${timeZone}`);
-  }
-
-  try {
-    dayjs.tz(start, selectedTimezone); // Test selected timezone
+    dayjs.tz(start, selectedTimezone);
   } catch (error) {
     console.log("🚀 ~ formatEventTime ~ error:", error);
     console.error(`Invalid selected timezone: ${selectedTimezone}`);
     throw new Error(`Invalid selected timezone: ${selectedTimezone}`);
   }
 
-  // Apply original timezone
-  const zonedStart = start.tz(timeZone, true); // Preserve exact time
-  const zonedEnd = end.tz(timeZone, true);
-
-  // Convert to selected timezone
-  const convertedStart = zonedStart.tz(selectedTimezone);
-  const convertedEnd = zonedEnd.tz(selectedTimezone);
+  // Convert UTC times to the selected timezone
+  const convertedStart = start.tz(selectedTimezone);
+  const convertedEnd = end.tz(selectedTimezone);
 
   return {
     ...event,

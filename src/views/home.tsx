@@ -20,8 +20,8 @@ export default function Home() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOpenSettings, setIsOpenSettings] = useState(false);
 
-  const { data: { preferences } = { preferences: "America/New_York" } } =
-    useSettings();
+  const { data: { preferences } = { preferences: "UTC" } } = useSettings();
+
   const { data: events, isPending } = useGetEvents();
 
   const localizer = useMemo(() => {
